@@ -1,4 +1,6 @@
 const Tesseract = require('tesseract.js');
+const { getStore } = require('@netlify/edge-functions');
+const crypto = require('crypto');
 
 exports.handler = async function(event, context) {
     const headers = {
@@ -57,22 +59,44 @@ exports.handler = async function(event, context) {
                 imageBuffer,
                 'eng',
                 {
-                    logger: m => console.log(m) // Add logging for debugging
+                    logger: m => console.log(m)
                 }
             );
 
             const text = result.data.text;
 
-            // For testing, return immediate success
+            // Generate unique ID
+            const uniqueId = crypto.randomBytes(8).toString('hex');
+            
+            // Create recipe object
+            const recipe = {
+                id: uniqueId,
+                text: text,
+                created: Date.now(),
+                expires: Date.now() + (10 * 60 * 1000), // 10 minutes from now
+                nutrition: {
+                    calories: 300, // placeholder values
+                    protein: 20,
+                    carbs: 30,
+                    fat: 10
+                }
+            };
+
+            // Store recipe with expiration
+            const store = getStore('recipes');
+            await store.set(uniqueId, JSON.stringify(recipe), { 
+                ttl: 600 // 10 minutes in seconds
+            });
+
             return {
                 statusCode: 200,
                 headers,
                 body: JSON.stringify({
                     success: true,
                     message: "Recipe processed successfully",
-                    recipeUrl: `${process.env.URL}/recipe/test123`,
-                    instructions: "Open MyFitnessPal > Recipes > Add Recipe > Copy from the Web > Paste this URL",
-                    debug: { textLength: text.length, firstFewChars: text.substring(0, 100) }
+                    recipeUrl: `${process.env.URL}/recipe/${uniqueId}`,
+                    instructions: "Open MyFitnessPal > Recipes > Add Recipe > Copy from the Web > Paste this URL (Link expires in 10 minutes)",
+                    expiresIn: "10 minutes"
                 })
             };
 

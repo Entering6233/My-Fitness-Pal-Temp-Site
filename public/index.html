@@ -1,16 +1,50 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Recipe OCR</title>
+    <title>Recipe OCR - MyFitnessPal Import Tool</title>
     <style>
-        body { max-width: 800px; margin: 0 auto; padding: 20px; }
-        .result { margin-top: 20px; }
+        body {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            text-align: center;
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #e8f5e9;
+            border: 1px solid #81c784;
+        }
+        .error {
+            background-color: #ffebee;
+            border: 1px solid #e57373;
+        }
     </style>
 </head>
 <body>
-    <h1>Recipe OCR</h1>
-    <input type="file" id="recipeImage" accept="image/*">
-    <div class="result" id="result"></div>
+    <div class="container">
+        <h1>Recipe OCR - MyFitnessPal Import Tool</h1>
+        <p>Upload a photo of your recipe to create a temporary MyFitnessPal-compatible webpage</p>
+        
+        <div class="upload-area">
+            <input type="file" id="recipeImage" accept="image/*">
+            <p>Supported formats: JPG, PNG</p>
+        </div>
+        
+        <div class="result" id="result"></div>
+    </div>
 
     <script>
         document.getElementById('recipeImage').addEventListener('change', async (e) => {

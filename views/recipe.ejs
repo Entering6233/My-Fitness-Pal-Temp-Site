@@ -1,1 +1,42 @@
- 
+<!DOCTYPE html>
+<html>
+<head>
+    <title><%= recipe.name %></title>
+    <meta name="description" content="Recipe nutrition information">
+    <meta property="og:type" content="recipe">
+    <meta property="og:title" content="<%= recipe.name %>">
+    <meta property="og:site_name" content="Recipe Tracker">
+    <!-- These meta tags help MyFitnessPal parse the recipe -->
+    <meta property="nutrition:calories" content="<%= recipe.nutrition.calories %>">
+    <meta property="nutrition:protein" content="<%= recipe.nutrition.protein %>">
+    <meta property="nutrition:carbohydrates" content="<%= recipe.nutrition.carbs %>">
+    <meta property="nutrition:fat" content="<%= recipe.nutrition.fat %>">
+</head>
+<body>
+    <h1><%= recipe.name %></h1>
+    
+    <div class="recipe-info">
+        <p>Servings: <%= recipe.servings %></p>
+        <p>Serving Size: <%= recipe.nutrition.servingSize %></p>
+    </div>
+
+    <div class="ingredients">
+        <h2>Ingredients:</h2>
+        <ul>
+            <% recipe.ingredients.forEach(function(ingredient) { %>
+                <li><%= ingredient.amount %> <%= ingredient.unit %> <%= ingredient.name %></li>
+            <% }); %>
+        </ul>
+    </div>
+
+    <div class="nutrition">
+        <h2>Nutrition Information (per serving):</h2>
+        <ul>
+            <li>Calories: <%= recipe.nutrition.calories %></li>
+            <li>Protein: <%= recipe.nutrition.protein %>g</li>
+            <li>Carbohydrates: <%= recipe.nutrition.carbs %>g</li>
+            <li>Fat: <%= recipe.nutrition.fat %>g</li>
+        </ul>
+    </div>
+</body>
+</html> 

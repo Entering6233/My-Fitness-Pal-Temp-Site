@@ -1,1 +1,13 @@
- 
+[build]
+  functions = "functions"
+  publish = "public"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/recipe/*"
+  to = "/.netlify/functions/get-recipe"
+  status = 200 
