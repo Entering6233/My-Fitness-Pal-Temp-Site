@@ -8,7 +8,6 @@ exports.handler = async function(event, context) {
     try {
         console.log('Starting process...');
 
-        // Parse request
         const body = JSON.parse(event.body);
         if (!body.image) {
             throw new Error('No image data provided');
@@ -18,9 +17,11 @@ exports.handler = async function(event, context) {
         const base64Data = body.image.split(',')[1] || body.image;
         const imageBuffer = Buffer.from(base64Data, 'base64');
 
-        // Process image
+        // Process image with improved OCR
         console.log('Processing image...');
         const extractedText = await processImage(imageBuffer);
+        
+        console.log('Extracted Text:', extractedText); // Debug log
         
         // Clean text
         console.log('Cleaning text...');
@@ -33,14 +34,14 @@ exports.handler = async function(event, context) {
         // Generate ID
         const uniqueId = crypto.randomBytes(8).toString('hex');
 
-        // Build response
         return buildSuccessResponse({
             success: true,
             message: "Recipe processed successfully",
             recipeUrl: `${process.env.URL}/recipe/${uniqueId}?data=${encodeURIComponent(JSON.stringify(recipe))}`,
             instructions: "Open MyFitnessPal > Recipes > Add Recipe > Copy from the Web > Paste this URL",
             debug: {
-                textLength: cleanedText.length,
+                rawText: extractedText,
+                cleanedText: cleanedText,
                 ingredientCount: recipe.ingredients.length
             }
         });
