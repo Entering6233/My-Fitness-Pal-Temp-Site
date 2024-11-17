@@ -2,8 +2,8 @@
   "name": "recipe-ocr",
   "version": "1.0.0",
   "dependencies": {
-    "@netlify/edge-functions": "^2.0.0",
     "tesseract.js": "^4.1.1",
+    "ocrad.js": "0.0.1",
     "crypto": "^1.0.1"
   },
   "devDependencies": {
