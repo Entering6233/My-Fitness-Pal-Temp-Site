@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Recipe OCR</title>
+    <style>
+        body { max-width: 800px; margin: 0 auto; padding: 20px; }
+        .result { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>Recipe OCR</h1>
+    <input type="file" id="recipeImage" accept="image/*">
+    <div class="result" id="result"></div>
+
+    <script>
+        document.getElementById('recipeImage').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Processing image...';
+
+            // Add size check
+            if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                resultDiv.innerHTML = 'Error: Image too large. Please choose an image under 5MB.';
+                return;
+            }
+
+            // Convert image to base64
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const base64Image = e.target.result.split(',')[1];
+                    
+                    console.log('Sending request...'); // Debug log
+
+                    const response = await fetch('/.netlify/functions/process-recipe', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            image: base64Image,
+                            filename: file.name
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const contentType = response.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        throw new Error('Received non-JSON response from server');
+                    }
+
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        resultDiv.innerHTML = `
+                            <p>${data.message}</p>
+                            <p><a href="${data.recipeUrl}" target="_blank">${data.recipeUrl}</a></p>
+                            <p>${data.instructions}</p>
+                        `;
+                    } else {
+                        resultDiv.innerHTML = `Error: ${data.error}`;
+                    }
+                } catch (error) {
+                    console.error('Error:', error); // Debug log
+                    resultDiv.innerHTML = `Error processing image: ${error.message}`;
+                }
+            };
+
+            reader.onerror = function(error) {
+                console.error('FileReader Error:', error);
+                resultDiv.innerHTML = 'Error reading file';
+            };
+
+            try {
+                reader.readAsDataURL(file);
+            } catch (error) {
+                resultDiv.innerHTML = `Error preparing image: ${error.message}`;
+            }
+        });
+    </script>
+</body>
+</html> 
