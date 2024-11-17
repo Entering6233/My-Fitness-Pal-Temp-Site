@@ -14,11 +14,15 @@ exports.handler = async function(event, context) {
             throw new Error('No image data provided');
         }
 
+        // Fix base64 image data handling
+        const base64Data = body.image.split(',')[1] || body.image;
+        const imageBuffer = Buffer.from(base64Data, 'base64');
+
         // Multiple OCR passes with different optimizations
         const results = await Promise.all([
             // Pass 1: Optimized for general text
             Tesseract.recognize(
-                Buffer.from(body.image, 'base64'),
+                imageBuffer,
                 'eng',
                 {
                     logger: m => console.log(m),
@@ -34,7 +38,7 @@ exports.handler = async function(event, context) {
             ),
             // Pass 2: Optimized for numbers and measurements
             Tesseract.recognize(
-                Buffer.from(body.image, 'base64'),
+                imageBuffer,
                 'eng',
                 {
                     tessedit_char_whitelist: '0123456789/.½⅓⅔¼¾⅛⅜⅝⅞ ',
@@ -44,7 +48,7 @@ exports.handler = async function(event, context) {
             ),
             // Pass 3: Optimized for ingredient names
             Tesseract.recognize(
-                Buffer.from(body.image, 'base64'),
+                imageBuffer,
                 'eng',
                 {
                     tessedit_char_whitelist: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ ',
@@ -126,22 +130,27 @@ exports.handler = async function(event, context) {
                 recipeUrl: `${process.env.URL}/recipe/${uniqueId}?data=${encodeURIComponent(JSON.stringify(recipe))}`,
                 instructions: "Open MyFitnessPal > Recipes > Add Recipe > Copy from the Web > Paste this URL",
                 debug: {
-                    rawText: text,
-                    numbersText: numbersText,
-                    ingredientText: ingredientText,
-                    parsedIngredients: recipe.ingredients
+                    textLength: text.length,
+                    ingredientCount: recipe.ingredients.length,
+                    confidence: recipe.metadata.confidence
                 }
             })
         };
 
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            name: error.name
+        });
+        
         return {
             statusCode: 500,
             headers,
             body: JSON.stringify({
                 success: false,
-                error: error.message || 'Internal server error'
+                error: 'Error processing image. Please try again with a clearer photo.',
+                errorDetails: process.env.NODE_ENV === 'development' ? error.toString() : undefined
             })
         };
     }
