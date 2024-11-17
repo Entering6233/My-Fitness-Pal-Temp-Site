@@ -18,50 +18,26 @@ exports.handler = async function(event, context) {
         const base64Data = body.image.split(',')[1] || body.image;
         const imageBuffer = Buffer.from(base64Data, 'base64');
 
-        // Multiple OCR passes with different optimizations
-        const results = await Promise.all([
-            // Pass 1: Optimized for general text
-            Tesseract.recognize(
-                imageBuffer,
-                'eng',
-                {
-                    logger: m => console.log(m),
-                    tessedit_char_whitelist: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,/\\()[]{}!@#$%^&*-_+=<>?"|\'` ',
-                    tessedit_pageseg_mode: '6',
-                    tessedit_ocr_engine_mode: '3',
-                    preserve_interword_spaces: '1',
-                    textord_heavy_nr: '1',
-                    tessedit_create_txt: '1',
-                    tessedit_enable_doc_dict: '1',
-                    tessedit_enable_bigram_correction: '1'
-                }
-            ),
-            // Pass 2: Optimized for numbers and measurements
-            Tesseract.recognize(
-                imageBuffer,
-                'eng',
-                {
-                    tessedit_char_whitelist: '0123456789/.½⅓⅔¼¾⅛⅜⅝⅞ ',
-                    tessedit_pageseg_mode: '7',
-                    tessedit_ocr_engine_mode: '2'
-                }
-            ),
-            // Pass 3: Optimized for ingredient names
-            Tesseract.recognize(
-                imageBuffer,
-                'eng',
-                {
-                    tessedit_char_whitelist: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ ',
-                    tessedit_pageseg_mode: '3',
-                    tessedit_ocr_engine_mode: '3'
-                }
-            )
-        ]);
+        // Single optimized OCR pass with better settings
+        const result = await Tesseract.recognize(
+            imageBuffer,
+            'eng',
+            {
+                logger: m => console.log(m),
+                tessedit_char_whitelist: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,/\\()[]{}!@#$%^&*-_+=<>?"|\'` ½⅓⅔¼¾⅛⅜⅝⅞',
+                tessedit_pageseg_mode: '6',
+                tessedit_ocr_engine_mode: '3',
+                preserve_interword_spaces: '1',
+                textord_heavy_nr: '1',
+                tessedit_create_txt: '1',
+                tessedit_enable_doc_dict: '1',
+                tessedit_enable_bigram_correction: '1',
+                tessjs_create_pdf: '0',
+                tessjs_create_hocr: '0'
+            }
+        );
 
-        // Combine results from different passes
-        let text = results[0].data.text;
-        const numbersText = results[1].data.text;
-        const ingredientText = results[2].data.text;
+        let text = result.data.text;
 
         // Advanced text cleaning and normalization
         text = text
@@ -71,10 +47,10 @@ exports.handler = async function(event, context) {
             .replace(/[^\x20-\x7E]/g, '')
             
             // Fix common OCR errors
-            .replace(/[oO](?=\d)/g, '0')  // Replace o/O with 0 when before numbers
-            .replace(/[lI](?=\d)/g, '1')  // Replace l/I with 1 when before numbers
-            .replace(/[S5](?!\d)/g, 'S')  // Fix S/5 confusion
-            .replace(/[Z2](?!\d)/g, 'Z')  // Fix Z/2 confusion
+            .replace(/[oO](?=\d)/g, '0')
+            .replace(/[lI](?=\d)/g, '1')
+            .replace(/[S5](?!\d)/g, 'S')
+            .replace(/[Z2](?!\d)/g, 'Z')
             
             // Format measurements
             .replace(/([0-9])([a-zA-Z])/g, '$1 $2')
@@ -97,26 +73,10 @@ exports.handler = async function(event, context) {
             .replace(/⅜/g, '3/8')
             .replace(/⅝/g, '5/8')
             .replace(/⅞/g, '7/8')
-            
-            // Fix common unit abbreviations
-            .replace(/(\d+)\s*c\b/gi, '$1 cup')
-            .replace(/(\d+)\s*T\b/gi, '$1 tablespoon')
-            .replace(/(\d+)\s*t\b/gi, '$1 teaspoon')
-            .replace(/(\d+)\s*oz\b/gi, '$1 ounce')
-            .replace(/(\d+)\s*lb\b/gi, '$1 pound')
             .trim();
 
-        // Combine information from all passes
-        const combinedText = {
-            main: text,
-            numbers: numbersText,
-            ingredients: ingredientText
-        };
-
-        console.log('OCR Results:', combinedText); // Debug log
-
-        // Parse recipe with combined information
-        const recipe = parseRecipeText(combinedText);
+        // Parse recipe
+        const recipe = parseRecipeText(text);
 
         // Generate unique ID
         const uniqueId = crypto.randomBytes(8).toString('hex');
@@ -132,7 +92,7 @@ exports.handler = async function(event, context) {
                 debug: {
                     textLength: text.length,
                     ingredientCount: recipe.ingredients.length,
-                    confidence: recipe.metadata.confidence
+                    confidence: recipe.metadata?.confidence || 100
                 }
             })
         };
@@ -154,4 +114,6 @@ exports.handler = async function(event, context) {
             })
         };
     }
-}; 
+};
+
+// Keep your existing parseRecipeText and other helper functions
